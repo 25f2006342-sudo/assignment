@@ -97,6 +97,13 @@ def answer(q):
             return ''
         return sorted(totals.items(), key=lambda x: (-x[1], x[0]))[0][0]
 
+    # Average order value must divide USD-equivalent paid revenue by the number of paid orders.
+    if re.search(r'\b(average|mean)\b', low) and re.search(r'\b(order|orders|value)\b', low):
+        paid = [r for r in rows if str(r.get('status','')).lower() == 'paid']
+        if not paid:
+            return 0
+        return round(sum(usd_amount(r) for r in paid) / len(paid), 2)
+
     # Revenue/sales means only paid current orders.
     if re.search(r'\b(revenue|sales|turnover|generated|generate|earned|earnings)\b', low):
         paid = [r for r in rows if str(r.get('status','')).lower() == 'paid']
@@ -108,7 +115,7 @@ def answer(q):
     # Customer counts must be handled before generic order counts: questions such as
     # "How many customers placed at least one paid order?" ask for distinct people,
     # not the number of paid order rows.
-    if re.search(r'\b(how many|number of|count|count of|unique|different)\b', low) and re.search(r'\bcustomer', low):
+    if re.search(r'\b(how many|number of|count|count of|unique|different)\b', low) and re.search(r'\bcustomers?\b', low):
         if re.search(r'\bpaid\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'paid']
         elif re.search(r'\brefunded\b|\brefund\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'refunded']
         elif re.search(r'\bvoid\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'void']
