@@ -84,6 +84,19 @@ def answer(q):
         if re.search(r'\b(how many|number of|count|count of)\b', low):
             return len(rs)
         return total
+    # Product with the highest revenue: aggregate paid USD-equivalent revenue per product.
+    if (re.search(r'\b(product|products)\b', low)
+            and re.search(r'\b(most|highest|top|maximum|max)\b', low)
+            and re.search(r'\b(revenue|sales|turnover|earned|earnings)\b', low)):
+        paid = [r for r in rows if str(r.get('status','')).lower() == 'paid']
+        totals = {}
+        for r in paid:
+            name = str(r.get('product', ''))
+            totals[name] = totals.get(name, 0.0) + usd_amount(r)
+        if not totals:
+            return ''
+        return sorted(totals.items(), key=lambda x: (-x[1], x[0]))[0][0]
+
     # Revenue/sales means only paid current orders.
     if re.search(r'\b(revenue|sales|turnover|generated|generate|earned|earnings)\b', low):
         paid = [r for r in rows if str(r.get('status','')).lower() == 'paid']
