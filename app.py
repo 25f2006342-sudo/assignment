@@ -105,14 +105,20 @@ def answer(q):
         total = round(sum(usd_amount(r) for r in paid), 2)
         # If they ask for a product/customer breakdown, still return the aggregate for the matched subset.
         return total
+    # Customer counts must be handled before generic order counts: questions such as
+    # "How many customers placed at least one paid order?" ask for distinct people,
+    # not the number of paid order rows.
+    if re.search(r'\b(how many|number of|count|count of|unique|different)\b', low) and re.search(r'\bcustomer', low):
+        if re.search(r'\bpaid\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'paid']
+        elif re.search(r'\brefunded\b|\brefund\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'refunded']
+        elif re.search(r'\bvoid\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'void']
+        return len({r.get('customer') for r in rows if r.get('customer')})
     # Counts of orders.
     if re.search(r'\b(how many|number of|count|count of)\b', low) and re.search(r'\b(order|orders|transaction|transactions)\b', low):
-        if re.search(r'\bpaid\b', low): rows = [r for r in rows if r.get('status') == 'paid']
-        elif re.search(r'\bvoid\b', low): rows = [r for r in rows if r.get('status') == 'void']
-        elif re.search(r'\brefunded\b', low): rows = [r for r in rows if r.get('status') == 'refunded']
+        if re.search(r'\bpaid\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'paid']
+        elif re.search(r'\bvoid\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'void']
+        elif re.search(r'\brefunded\b', low): rows = [r for r in rows if str(r.get('status','')).lower() == 'refunded']
         return len(rows)
-    if re.search(r'\b(how many|number of|count|count of|unique)\b', low) and re.search(r'\bcustomer', low):
-        return len({r.get('customer') for r in rows})
     # Quantity-based questions / best-selling product.
     if re.search(r'\b(quantity|units|items sold|best[- ]selling|top[- ]selling|most sold)\b', low):
         paid = [r for r in rows if r.get('status') == 'paid']
